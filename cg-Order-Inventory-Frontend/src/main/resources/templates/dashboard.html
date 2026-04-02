@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Dashboard — Order Inventory</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        nav {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-brand { font-weight: 700; font-size: 15px; color: #38bdf8; letter-spacing: 1px; }
+        .nav-right { display: flex; align-items: center; gap: 16px; }
+        .nav-email { font-size: 13px; color: #94a3b8; }
+        .role-badge {
+            font-size: 11px; font-weight: 700; letter-spacing: 1px;
+            padding: 3px 10px; border-radius: 999px; text-transform: uppercase;
+            background: #0c4a6e; color: #38bdf8; border: 1px solid #0369a1;
+        }
+        .logout { font-size: 13px; color: #64748b; text-decoration: none; }
+        .logout:hover { color: #f87171; }
+        main { max-width: 860px; margin: 48px auto; padding: 0 24px; }
+        h2 { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+        .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+        .api-card {
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 10px; padding: 20px 24px;
+            margin-bottom: 14px; display: flex;
+            align-items: flex-start; gap: 16px;
+        }
+        .method {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+            padding: 4px 10px; border-radius: 6px; flex-shrink: 0; margin-top: 2px;
+        }
+        .get { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+        .endpoint { font-family: 'Courier New', monospace; font-size: 14px; color: #f1f5f9; font-weight: 600; }
+        .api-desc { font-size: 12px; color: #64748b; margin-top: 5px; }
+        .param-tag {
+            display: inline-block; font-size: 11px;
+            background: #1e3a5f; color: #93c5fd;
+            border: 1px solid #1d4ed8; border-radius: 4px;
+            padding: 1px 7px; margin-top: 8px; font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="nav-brand">Order Inventory</div>
+    <div class="nav-right">
+        <span class="nav-email" th:text="${email}"></span>
+        <span class="role-badge" th:text="${role}"></span>
+        <a class="logout" th:href="@{/logout}">Logout</a>
+    </div>
+</nav>
+
+<!-- Pass token to JS -->
+<input type="hidden" id="jwtToken" th:value="${token}" />
+
+<main>
+
+    <!-- STORE — Ishaan -->
+    <div th:if="${role == 'STORE'}">
+        <h2>Store APIs</h2>
+        <p class="subtitle">Endpoints available to the Store module</p>
+        <div class="api-card" style="flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                <span class="method get">GET</span>
+                <div class="api-info" style="flex: 1;">
+                    <div class="endpoint">/api/stores/{storeId}/orders</div>
+                    <div class="api-desc">Retrieves all orders placed through a specific store.</div>
+                    <span class="param-tag">@PathVariable storeId : Integer</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input id="storeIdInput" type="number" placeholder="Enter Store ID"
+                       style="width:180px; background:#0f172a; border:1px solid #334155;
+                               border-radius:8px; color:#f1f5f9; font-size:13px; padding:8px 12px; outline:none;" />
+                <button onclick="fetchOrders()"
+                        style="background:#14532d; color:#4ade80; border:1px solid #166534;
+                               border-radius:8px; padding:8px 18px; font-size:13px;
+                               font-weight:600; cursor:pointer; width:auto; margin-top:0;">
+                    GET
+                </button>
+                <span id="storeError" style="color:#f87171; font-size:12px; display:none;"></span>
+            </div>
+            <div id="resultBox" style="display:none; margin-top:8px;">
+                <div style="font-size:12px; color:#64748b; margin-bottom:10px;">
+                    Showing results for Store ID: <span id="resultStoreId" style="color:#38bdf8;"></span>
+                </div>
+                <div style="overflow-x:auto; border-radius:8px; border:1px solid #334155;">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                        <tr style="background:#0f172a; color:#94a3b8; text-align:left;">
+                            <th style="padding:10px 14px; border-bottom:1px solid #334155;">Order ID</th>
+                            <th style="padding:10px 14px; border-bottom:1px solid #334155;">Order Time</th>
+                            <th style="padding:10px 14px; border-bottom:1px solid #334155;">Status</th>
+                            <th style="padding:10px 14px; border-bottom:1px solid #334155;">Customer</th>
+                            <th style="padding:10px 14px; border-bottom:1px solid #334155;">Store</th>
+                        </tr>
+                        </thead>
+                        <tbody id="ordersTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="noResults" style="display:none; color:#64748b; font-size:13px; padding:16px 0;">
+                    No orders found for this store.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ORDERITEM — Mayank -->
+    <div th:if="${role == 'ORDERITEM'}">
+        <h2>Order Item APIs</h2>
+        <p class="subtitle">Endpoints available to the Order Item module</p>
+    </div>
+
+    <!-- ORDER — Aditya -->
+    <div th:if="${role == 'ORDER'}">
+        <h2>Order APIs</h2>
+        <p class="subtitle">Endpoints available to the Order module</p>
+    </div>
+
+    <!-- INVENTORY — Romi -->
+    <div th:if="${role == 'INVENTORY'}">
+        <h2>Inventory APIs</h2>
+        <p class="subtitle">Endpoints available to the Inventory module</p>
+    </div>
+
+    <!-- SHIPMENT — Sanidhya -->
+    <div th:if="${role == 'SHIPMENT'}">
+        <h2>Shipment APIs</h2>
+        <p class="subtitle">Endpoints available to the Shipment module</p>
+    </div>
+
+</main>
+
+<script>
+    const token = document.getElementById('jwtToken').value;
+
+    async function fetchOrders() {
+        const storeId = document.getElementById('storeIdInput').value.trim();
+        const errorEl = document.getElementById('storeError');
+        const resultBox = document.getElementById('resultBox');
+        const tbody = document.getElementById('ordersTableBody');
+        const noResults = document.getElementById('noResults');
+
+        errorEl.style.display = 'none';
+        resultBox.style.display = 'none';
+        tbody.innerHTML = '';
+        noResults.style.display = 'none';
+
+        if (!storeId || storeId <= 0) {
+            errorEl.textContent = 'Please enter a valid Store ID.';
+            errorEl.style.display = 'inline';
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/stores/${storeId}/orders`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                errorEl.textContent = `Error: ${response.status} — Store not found or invalid ID.`;
+                errorEl.style.display = 'inline';
+                return;
+            }
+
+            const orders = await response.json();
+            document.getElementById('resultStoreId').textContent = storeId;
+            resultBox.style.display = 'block';
+
+            if (orders.length === 0) {
+                noResults.style.display = 'block';
+                return;
+            }
+
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #1e293b';
+                row.innerHTML = `
+                    <td style="padding:10px 14px; color:#f1f5f9;">${order.orderId ?? '—'}</td>
+                    <td style="padding:10px 14px; color:#94a3b8;">${order.orderTms ?? '—'}</td>
+                    <td style="padding:10px 14px;">
+                        <span style="padding:2px 10px; border-radius:999px; font-size:11px;
+                            font-weight:700; background:#14532d; color:#4ade80; border:1px solid #166534;">
+                            ${order.orderStatus ?? '—'}
+                        </span>
+                    </td>
+                    <td style="padding:10px 14px; color:#94a3b8;">${order.customerName ?? '—'}</td>
+                    <td style="padding:10px 14px; color:#94a3b8;">${order.storeName ?? '—'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+        } catch (err) {
+            errorEl.textContent = 'Failed to connect. Is the backend running?';
+            errorEl.style.display = 'inline';
+        }
+    }
+</script>
+</body>
+</html>
