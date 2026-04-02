@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Shipment APIs — Order Inventory</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        nav {
+            background: #1e293b; border-bottom: 1px solid #334155;
+            padding: 16px 32px; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .nav-brand { font-weight: 700; font-size: 15px; color: #38bdf8; letter-spacing: 1px; }
+        .nav-right { display: flex; align-items: center; gap: 16px; }
+        .nav-email { font-size: 13px; color: #94a3b8; }
+        .role-badge {
+            font-size: 11px; font-weight: 700; letter-spacing: 1px;
+            padding: 3px 10px; border-radius: 999px; text-transform: uppercase;
+            background: #0c4a6e; color: #38bdf8; border: 1px solid #0369a1;
+        }
+        .logout { font-size: 13px; color: #64748b; text-decoration: none; }
+        .logout:hover { color: #f87171; }
+        main { max-width: 860px; margin: 48px auto; padding: 0 24px; }
+        h2 { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+        .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+        .api-card {
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 10px; padding: 20px 24px;
+            margin-bottom: 14px; display: flex;
+            flex-direction: column; gap: 12px;
+        }
+        .api-card-header { display: flex; align-items: flex-start; gap: 16px; }
+        .method {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+            padding: 4px 10px; border-radius: 6px; flex-shrink: 0; margin-top: 2px;
+        }
+        .get { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+        .endpoint { font-family: 'Courier New', monospace; font-size: 14px; color: #f1f5f9; font-weight: 600; }
+        .api-desc { font-size: 12px; color: #64748b; margin-top: 5px; }
+        .param-tag {
+            display: inline-block; font-size: 11px;
+            background: #1e3a5f; color: #93c5fd;
+            border: 1px solid #1d4ed8; border-radius: 4px;
+            padding: 1px 7px; margin-top: 8px; font-family: monospace;
+        }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        .id-input {
+            width: 180px; background: #0f172a; border: 1px solid #334155;
+            border-radius: 8px; color: #f1f5f9; font-size: 13px;
+            padding: 8px 12px; outline: none;
+        }
+        .id-input:focus { border-color: #38bdf8; }
+        .get-btn {
+            background: #14532d; color: #4ade80; border: 1px solid #166534;
+            border-radius: 8px; padding: 8px 18px; font-size: 13px;
+            font-weight: 600; cursor: pointer; width: auto; margin-top: 0;
+        }
+        .get-btn:hover { background: #166534; }
+        .error-msg { color: #f87171; font-size: 12px; display: none; }
+        .result-box { display: none; margin-top: 8px; }
+        .result-label { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+        .result-label span { color: #38bdf8; }
+        .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #334155; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #0f172a; color: #94a3b8; text-align: left; }
+        th { padding: 10px 14px; border-bottom: 1px solid #334155; }
+        td { padding: 10px 14px; border-bottom: 1px solid #1e293b; color: #94a3b8; }
+        .no-results { display: none; color: #64748b; font-size: 13px; padding: 16px 0; }
+        .status-badge {
+            padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+        }
+        .status-delivered { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+        .status-pending   { background: #451a03; color: #fb923c; border: 1px solid #92400e; }
+        .status-default   { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-brand">Order Inventory</div>
+    <div class="nav-right">
+        <span class="nav-email" th:text="${email}"></span>
+        <span class="role-badge" th:text="${role}"></span>
+        <a class="logout" th:href="@{/logout}">Logout</a>
+    </div>
+</nav>
+
+<input type="hidden" id="jwtToken" th:value="${token}" />
+<input type="hidden" id="backendUrl" th:value="${backendUrl}" />
+
+<main>
+    <h2>Shipment APIs</h2>
+    <p class="subtitle">Endpoints available to the Shipment module</p>
+
+    <div class="api-card">
+        <div class="api-card-header">
+            <span class="method get">GET</span>
+            <div style="flex: 1;">
+                <div class="endpoint">/api/shipments/customer/{customerId}</div>
+                <div class="api-desc">Retrieves all shipments associated with a specific customer.</div>
+                <span class="param-tag">@PathVariable customerId : Integer</span>
+            </div>
+        </div>
+
+        <div class="input-row">
+            <input id="customerIdInput" class="id-input" type="number" placeholder="Enter Customer ID" />
+            <button class="get-btn" onclick="fetchShipments()">GET</button>
+            <span id="shipmentError" class="error-msg"></span>
+        </div>
+
+        <div id="resultBox" class="result-box">
+            <div class="result-label">
+                Showing shipments for Customer ID: <span id="resultCustomerId"></span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Shipment ID</th>
+                        <th>Shipment Status</th>
+                        <th>Delivery Status</th>
+                        <th>Store ID</th>
+                        <th>Store Name</th>
+                    </tr>
+                    </thead>
+                    <tbody id="shipmentsTableBody"></tbody>
+                </table>
+            </div>
+            <div id="noResults" class="no-results">No shipments found for this customer.</div>
+
+            <!-- Pagination -->
+            <div id="pagination" style="display:none; margin-top:16px; align-items:center; justify-content:space-between;">
+                <div id="pageInfo" style="font-size:12px; color:#64748b;"></div>
+                <div style="display:flex; gap:8px;">
+                    <button id="prevBtn" onclick="changePage(-1)"
+                            style="background:#1e293b; color:#94a3b8; border:1px solid #334155;
+                                   border-radius:6px; padding:6px 14px; font-size:12px; cursor:pointer;">
+                        ← Prev
+                    </button>
+                    <button id="nextBtn" onclick="changePage(1)"
+                            style="background:#1e293b; color:#94a3b8; border:1px solid #334155;
+                                   border-radius:6px; padding:6px 14px; font-size:12px; cursor:pointer;">
+                        Next →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    const token = document.getElementById('jwtToken').value;
+    const backendUrl = document.getElementById('backendUrl').value;
+
+    const PAGE_SIZE = 5;
+    let allShipments = [];
+    let currentPage = 1;
+
+    function getStatusClass(status) {
+        if (!status) return 'status-default';
+        const s = status.toUpperCase();
+        if (s.includes('DELIVER')) return 'status-delivered';
+        if (s.includes('PEND'))    return 'status-pending';
+        return 'status-default';
+    }
+
+    async function fetchShipments() {
+        const customerId = document.getElementById('customerIdInput').value.trim();
+        const errorEl   = document.getElementById('shipmentError');
+        const resultBox = document.getElementById('resultBox');
+        const noResults = document.getElementById('noResults');
+
+        errorEl.style.display = 'none';
+        resultBox.style.display = 'none';
+        noResults.style.display = 'none';
+        allShipments = [];
+        currentPage = 1;
+
+        if (!customerId || customerId <= 0) {
+            errorEl.textContent = 'Please enter a valid Customer ID.';
+            errorEl.style.display = 'inline';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${backendUrl}/api/shipments/customer/${customerId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                errorEl.textContent = `Error: ${response.status} — Customer not found or invalid ID.`;
+                errorEl.style.display = 'inline';
+                return;
+            }
+
+            allShipments = await response.json();
+            document.getElementById('resultCustomerId').textContent = customerId;
+            resultBox.style.display = 'block';
+
+            if (allShipments.length === 0) {
+                noResults.style.display = 'block';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            renderPage(currentPage);
+
+        } catch (err) {
+            errorEl.textContent = 'Failed to connect. Is the backend running?';
+            errorEl.style.display = 'inline';
+        }
+    }
+
+    function renderPage(page) {
+        const tbody      = document.getElementById('shipmentsTableBody');
+        const pagination = document.getElementById('pagination');
+        const pageInfo   = document.getElementById('pageInfo');
+        const prevBtn    = document.getElementById('prevBtn');
+        const nextBtn    = document.getElementById('nextBtn');
+
+        tbody.innerHTML = '';
+
+        const totalPages = Math.ceil(allShipments.length / PAGE_SIZE);
+        const start      = (page - 1) * PAGE_SIZE;
+        const end        = Math.min(start + PAGE_SIZE, allShipments.length);
+        const pageData   = allShipments.slice(start, end);
+
+        pageData.forEach(s => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="color:#f1f5f9;">${s.shipmentId ?? '—'}</td>
+                <td><span class="status-badge ${getStatusClass(s.shipmentStatus)}">${s.shipmentStatus ?? '—'}</span></td>
+                <td><span class="status-badge ${getStatusClass(s.deliveryStatus)}">${s.deliveryStatus ?? '—'}</span></td>
+                <td>${s.storeId ?? '—'}</td>
+                <td>${s.storeName ?? '—'}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        pageInfo.textContent = `Page ${page} of ${totalPages} (${allShipments.length} total)`;
+        pagination.style.display = 'flex';
+        prevBtn.disabled = page === 1;
+        prevBtn.style.opacity = page === 1 ? '0.4' : '1';
+        nextBtn.disabled = page === totalPages;
+        nextBtn.style.opacity = page === totalPages ? '0.4' : '1';
+    }
+
+    function changePage(direction) {
+        const totalPages = Math.ceil(allShipments.length / PAGE_SIZE);
+        const newPage = currentPage + direction;
+        if (newPage < 1 || newPage > totalPages) return;
+        currentPage = newPage;
+        renderPage(currentPage);
+    }
+</script>
+
+</body>
+</html>
