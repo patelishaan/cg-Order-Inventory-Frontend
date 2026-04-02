@@ -38,6 +38,8 @@ public class DashboardController {
         model.addAttribute("backendUrl", backendUrl);
         return "store";
     }
+    
+    
 
     @GetMapping("/shipment")
     public String shipment(HttpSession session, Model model) {
@@ -56,4 +58,19 @@ public class DashboardController {
         session.invalidate();
         return "redirect:/auth/login";
     }
+    
+    @GetMapping("/order")
+    public String order(HttpSession session, Model model) {
+        String token = (String) session.getAttribute("jwt");
+
+        if (token == null) return "redirect:/auth/login";
+
+        model.addAttribute("email", session.getAttribute("email"));
+        model.addAttribute("role", session.getAttribute("role"));
+        model.addAttribute("token", token);
+        model.addAttribute("backendUrl", backendUrl);
+
+        return "order";
+    }
+    
 }
