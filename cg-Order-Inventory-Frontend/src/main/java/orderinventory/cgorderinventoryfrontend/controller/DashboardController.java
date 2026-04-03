@@ -52,6 +52,19 @@ public class DashboardController {
         return "shipment";
     }
 
+    @GetMapping("/inventory")
+    public String inventory(HttpSession session, Model model) {
+        String token = (String) session.getAttribute("jwt");
+        if (token == null) return "redirect:/auth/login";
+        model.addAttribute("email", session.getAttribute("email"));
+        model.addAttribute("role", session.getAttribute("role"));
+        model.addAttribute("token", token);
+        model.addAttribute("backendUrl", backendUrl);
+        return "inventory";
+    }
+
+
+
 
     @GetMapping("/logout")
     public String logout(HttpSession session) {
