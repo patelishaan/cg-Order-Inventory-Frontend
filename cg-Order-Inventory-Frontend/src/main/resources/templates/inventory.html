@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory Dashboard</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+        }
+
+        nav {
+            background: #1e293b;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .brand { color: #38bdf8; font-weight: bold; }
+
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h2 { margin-bottom: 10px; }
+
+        .btn {
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .fetch-btn { background: #22c55e; color: white; }
+
+        .input-row {
+            margin: 20px 0;
+        }
+
+        input {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background: #1e293b;
+            padding: 10px;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .error { color: #f87171; }
+        .no-data { margin-top: 10px; color: #94a3b8; }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav>
+    <div class="brand">Order Inventory</div>
+    <div>
+        <span th:text="${email}"></span> |
+        <span th:text="${role}"></span> |
+        <a th:href="@{/logout}" style="color:#f87171;">Logout</a>
+    </div>
+</nav>
+
+<!-- HIDDEN VALUES -->
+<input type="hidden" id="token" th:value="${token}">
+<input type="hidden" id="backendUrl" th:value="${backendUrl}">
+
+<!-- MAIN -->
+<div class="container">
+
+    <h2>Inventory Dashboard</h2>
+    <p>Fetch inventory details using Product ID</p>
+
+    <!-- INPUT -->
+    <div class="input-row">
+        <input type="number" id="productId" placeholder="Enter Product ID">
+        <button class="btn fetch-btn" onclick="fetchInventory()">Fetch</button>
+        <span id="error" class="error"></span>
+    </div>
+
+    <!-- TABLE -->
+    <table id="table" style="display:none;">
+        <thead>
+        <tr>
+            <th>Inventory ID</th>
+            <th>Store</th>
+            <th>Product</th>
+            <th>Quantity</th>
+        </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+
+    <div id="noData" class="no-data" style="display:none;">
+        No inventory found for this product.
+    </div>
+
+</div>
+
+<script>
+
+    const token = document.getElementById("token").value;
+    const backendUrl = document.getElementById("backendUrl").value;
+
+    async function fetchInventory() {
+
+        const productId = document.getElementById("productId").value;
+        const error = document.getElementById("error");
+
+        error.innerText = "";
+        document.getElementById("noData").style.display = "none";
+
+        if (!productId || productId <= 0) {
+            error.innerText = "Please enter valid Product ID";
+            return;
+        }
+
+        try {
+            const response = await fetch(`${backendUrl}/api/inventory/product/${productId}`, {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (!response.ok) {
+                error.innerText = "Invalid product or not found";
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.length === 0) {
+                document.getElementById("table").style.display = "none";
+                document.getElementById("noData").style.display = "block";
+                return;
+            }
+
+            document.getElementById("table").style.display = "table";
+
+            renderTable(data);
+
+        } catch (e) {
+            error.innerText = "Backend not reachable";
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById("tbody");
+        tbody.innerHTML = "";
+
+        data.forEach(inv => {
+            const row = `
+                <tr>
+                    <td>${inv.inventoryId}</td>
+                    <td>${inv.storeName} (ID: ${inv.storeId})</td>
+                    <td>${inv.productName} (ID: ${inv.productId})</td>
+                    <td>${inv.quantity}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+</script>
+
+</body>
+</html>
