@@ -72,7 +72,7 @@ public class DashboardController {
 
         return "order";
     }
-    // 🔹 ORDER ITEM (NEW)
+    //  ORDER ITEM
     @GetMapping("/orderitem")
     public String orderItem(HttpSession session, Model model) {
         if (session.getAttribute("jwt") == null) return "redirect:/auth/login";
@@ -82,6 +82,6 @@ public class DashboardController {
         model.addAttribute("token", session.getAttribute("jwt"));
         model.addAttribute("backendUrl", backendUrl);
 
-        return "orderitem";  // make sure orderitem.html exists
+        return "orderitem";
     }
 }
