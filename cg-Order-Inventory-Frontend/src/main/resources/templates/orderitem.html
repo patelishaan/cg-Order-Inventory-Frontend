@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Order Item APIs — Order Inventory</title>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        nav {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand { font-weight: 700; font-size: 15px; color: #38bdf8; }
+        .nav-right { display: flex; gap: 16px; align-items: center; }
+        .nav-email { font-size: 13px; color: #94a3b8; }
+
+        .role-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: #0c4a6e;
+            color: #38bdf8;
+        }
+
+        .logout { color: #64748b; text-decoration: none; }
+        .logout:hover { color: #f87171; }
+
+        main { max-width: 900px; margin: 50px auto; padding: 0 20px; }
+
+        h2 { margin-bottom: 6px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; }
+
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .input-row { display: flex; gap: 10px; margin-top: 15px; }
+
+        input {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+        }
+
+        button {
+            padding: 8px 14px;
+            border-radius: 6px;
+            background: #14532d;
+            color: #4ade80;
+            border: 1px solid #166534;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #334155;
+        }
+
+        th { color: #94a3b8; }
+
+        .error { color: #f87171; margin-top: 10px; }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <div class="nav-brand">Order Inventory</div>
+    <div class="nav-right">
+        <span th:text="${email}"></span>
+        <span class="role-badge" th:text="${role}"></span>
+        <a th:href="@{/logout}">Logout</a>
+    </div>
+</nav>
+
+<input type="hidden" id="token" th:value="${token}" />
+<input type="hidden" id="backendUrl" th:value="${backendUrl}" />
+
+<main>
+    <h2>Order Item APIs</h2>
+    <p class="subtitle">Fetch order items using Shipment ID</p>
+
+    <div class="card">
+
+        <div><b>GET</b> /api/order-items/shipment/{shipmentId}</div>
+
+        <div class="input-row">
+            <input id="shipmentId" type="number" placeholder="Enter Shipment ID" />
+            <button onclick="fetchItems()">GET</button>
+        </div>
+
+        <div id="error" class="error"></div>
+
+        <table id="table" style="display:none;">
+            <thead>
+            <tr>
+                <th>Line Item ID</th>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Quantity</th>
+            </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+
+    </div>
+</main>
+
+<script>
+    const token = document.getElementById("token").value;
+    const backendUrl = document.getElementById("backendUrl").value;
+
+    async function fetchItems() {
+        const id = document.getElementById("shipmentId").value;
+        const error = document.getElementById("error");
+        const table = document.getElementById("table");
+        const tbody = document.getElementById("tbody");
+
+        error.textContent = "";
+        table.style.display = "none";
+        tbody.innerHTML = "";
+
+        if (!id || id <= 0) {
+            error.textContent = "Enter valid shipment ID";
+            return;
+        }
+
+        try {
+            const res = await fetch(`${backendUrl}/api/order-items/shipment/${id}`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) {
+                error.textContent = "Error: " + res.status;
+                return;
+            }
+
+            const data = await res.json();
+
+            if (data.length === 0) {
+                error.textContent = "No data found";
+                return;
+            }
+
+            table.style.display = "table";
+
+            data.forEach(item => {
+                const row = `
+                    <tr>
+                        <td>${item.lineItemId}</td>
+                        <td>${item.orderId}</td>
+                        <td>${item.productName}</td>
+                        <td>${item.unitPrice}</td>
+                        <td>${item.quantity}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+
+        } catch (e) {
+            error.textContent = "Server error";
+        }
+    }
+</script>
+
+</body>
+</html>
